@@ -1,0 +1,67 @@
+{
+  "camera_address": "rtsp://root:Video5000@172.30.71.99/axis-media/media.amp?",
+  "count": 20,
+  "global_count": 5,
+  "number_machine": null,
+  "number_coke": [801, 819, "H_C"],
+  "server_address": "172.30.71.88",
+  "server_port": 8886,
+  "model_path": "model/hatches.h5",
+  "matrix":
+  {
+    "matrix":
+    [
+      [1.4813860049720862, 0.23218191247906877, -667.9317693499971],
+      [0.025210887082311322, 1.5126532249386748, -231.63763051227576],
+      [-2.7813954245855866e-05, 0.00047546206882530197, 1.0]
+    ],
+    "maxWidth": 85,
+    "maxHeight": 917
+  },
+  "fake_machine": null,
+  "fake_coke":
+  {
+    "0": {"x_min": 16, "y_min": 877, "x_max": 62, "y_max": 909},
+    "1": {"x_min": 21, "y_min": 826, "x_max": 65, "y_max": 856},
+    "2": {"x_min": 24, "y_min": 773, "x_max": 65, "y_max": 802},
+    "3": {"x_min": 24, "y_min": 722, "x_max": 67, "y_max": 754},
+    "4": {"x_min": 28, "y_min": 671, "x_max": 69, "y_max": 702},
+    "5": {"x_min": 29, "y_min": 624, "x_max": 71, "y_max": 653},
+    "6": {"x_min": 29, "y_min": 575, "x_max": 69, "y_max": 602},
+    "7": {"x_min": 28, "y_min": 527, "x_max": 71, "y_max": 557},
+    "8": {"x_min": 29, "y_min": 477, "x_max": 70, "y_max": 506},
+    "9": {"x_min": 27, "y_min": 429, "x_max": 69, "y_max": 462},
+    "10": {"x_min": 26, "y_min": 382, "x_max": 69, "y_max": 413},
+    "11": {"x_min": 25, "y_min": 336, "x_max": 66, "y_max": 365},
+    "12": {"x_min": 29, "y_min": 287, "x_max": 70, "y_max": 319},
+    "13": {"x_min": 27, "y_min": 241, "x_max": 69, "y_max": 272},
+    "14": {"x_min": 23, "y_min": 193, "x_max": 67, "y_max": 225},
+    "15": {"x_min": 22, "y_min": 145, "x_max": 64, "y_max": 177},
+    "16": {"x_min": 23, "y_min": 98, "x_max": 61, "y_max": 127},
+    "17": {"x_min": 21, "y_min": 50, "x_max": 61, "y_max": 79},
+    "18": {"x_min": 16, "y_min": 2, "x_max": 57, "y_max": 31}
+  },
+  "roi_machine": null,
+  "roi_coke":
+  {
+    "0": {"x_min": 16, "y_min": 877, "x_max": 62, "y_max": 909},
+    "1": {"x_min": 21, "y_min": 826, "x_max": 65, "y_max": 856},
+    "2": {"x_min": 24, "y_min": 773, "x_max": 65, "y_max": 802},
+    "3": {"x_min": 24, "y_min": 722, "x_max": 67, "y_max": 754},
+    "4": {"x_min": 28, "y_min": 671, "x_max": 69, "y_max": 702},
+    "5": {"x_min": 29, "y_min": 624, "x_max": 71, "y_max": 653},
+    "6": {"x_min": 29, "y_min": 575, "x_max": 69, "y_max": 602},
+    "7": {"x_min": 28, "y_min": 527, "x_max": 71, "y_max": 557},
+    "8": {"x_min": 29, "y_min": 477, "x_max": 70, "y_max": 506},
+    "9": {"x_min": 27, "y_min": 429, "x_max": 69, "y_max": 462},
+    "10": {"x_min": 26, "y_min": 382, "x_max": 69, "y_max": 413},
+    "11": {"x_min": 25, "y_min": 336, "x_max": 66, "y_max": 365},
+    "12": {"x_min": 29, "y_min": 287, "x_max": 70, "y_max": 319},
+    "13": {"x_min": 27, "y_min": 241, "x_max": 69, "y_max": 272},
+    "14": {"x_min": 23, "y_min": 193, "x_max": 67, "y_max": 225},
+    "15": {"x_min": 22, "y_min": 145, "x_max": 64, "y_max": 177},
+    "16": {"x_min": 23, "y_min": 98, "x_max": 61, "y_max": 127},
+    "17": {"x_min": 21, "y_min": 50, "x_max": 61, "y_max": 79},
+    "18": {"x_min": 16, "y_min": 2, "x_max": 57, "y_max": 31}
+  }
+}

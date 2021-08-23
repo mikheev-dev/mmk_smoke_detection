@@ -1,0 +1,6 @@
+[core]
+    analytics = false
+    remote = main
+['remote "main"']
+        url = s3://smoke-detection-dvc
+        region = eu-central-1
