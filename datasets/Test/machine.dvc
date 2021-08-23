@@ -1,0 +1,5 @@
+outs:
+- md5: f1f991aa6d23b2347b2d4660e8529988.dir
+  size: 558693
+  nfiles: 192
+  path: machine

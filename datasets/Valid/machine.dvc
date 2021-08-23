@@ -1,0 +1,5 @@
+outs:
+- md5: 12b4332d7bdecf52efe58ce086a5b4c0.dir
+  size: 609235
+  nfiles: 214
+  path: machine

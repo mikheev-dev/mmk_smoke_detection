@@ -1,0 +1,5 @@
+outs:
+- md5: 156b14aa36422aab2b0e8cf7ecdba7d2.dir
+  size: 42552149
+  nfiles: 13042
+  path: emission
