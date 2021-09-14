@@ -1,0 +1,5 @@
+outs:
+- md5: bdf97d576d82552cb2113a59b5096c29.dir
+  size: 344893547
+  nfiles: 100524
+  path: local_dataset
