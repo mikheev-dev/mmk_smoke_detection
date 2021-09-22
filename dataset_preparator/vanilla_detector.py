@@ -15,6 +15,7 @@ from classJson import JsonData
 from preparator import RoiLoader, ImageDetectionController, N, M, DetectionPlace, LABELS
 from multiprocessing import Process, Queue
 from preparator import QueuePutter, AbsGetter
+from logging import Logger
 
 
 #TODO Realize the getter for real time cv2.
@@ -44,9 +45,13 @@ class MultiCameraFileGetter(AbsGetter):
     _total_count: int
     _counter: int = 0
 
+    _logger: Logger
+
     def __init__(self,
-                 pathes_to_images: List[str]):
-        print(len(pathes_to_images))
+                 pathes_to_images: List[str],
+                 logger: Logger):
+        self._logger = logger
+        self._logger.info(len(pathes_to_images))
         self._total_count = len(pathes_to_images)
         self._pathes = iter(pathes_to_images)
         self._counter = 0
@@ -65,7 +70,7 @@ class MultiCameraFileGetter(AbsGetter):
             img = np.array(Image.open(image_path))
             ip = self._get_camera_ip(image_path)
             self._counter += 1
-            print(f"MultiCameraFileGetter:: Loaded {self._counter}/{self._total_count}")
+            self._logger.info(f"MultiCameraFileGetter:: Loaded {self._counter}/{self._total_count}")
             return self._gen_image_name(image_path), ip, img
         except StopIteration:
             return None
@@ -107,17 +112,17 @@ class CameraConfigController:
 class VanillaDetector:
     _model: Any
     _emission_threshold: Optional[float]
-    _background_prob_threshold: Optional[float]
     _detection_controller: Optional[ImageDetectionController]
+    _logger: Logger
 
     def __init__(self,
-                 background_prob_threshold: Optional[float] = None,
+                 logger: Logger,
                  emission_threshold: Optional[float] = None,
                  detection_controller: Optional[ImageDetectionController] = None) -> None:
         self._emission_threshold = emission_threshold
         self._detection_controller = detection_controller
-        self._background_prob_threshold = background_prob_threshold
-        
+        self._logger = logger
+
     def set_model(self, model: Any):
         self._model = model
 
@@ -142,7 +147,7 @@ class VanillaDetector:
                 crop_frame = np.reshape(crop_frame, (1, N, M, 3))
                 arr[idx] = crop_frame
         except Exception as error:
-            print(error)
+            self._logger.error(str(error))
         return arr
 
     def _get_image_classification_idx(self,
@@ -161,10 +166,6 @@ class VanillaDetector:
             return label_idx
         return 1 if label_idx == 0 and prediction[1] > self._emission_threshold else label_idx
 
-    def _need_to_save_background_image(self) -> bool:
-        rand = random.random()
-        return rand <= self._background_prob_threshold
-
     def _get_detection_places_of_image(self,
                                        predictions: np.ndarray,
                                        camera_config: CameraConfig) -> List[DetectionPlace]:
@@ -174,9 +175,6 @@ class VanillaDetector:
                 prediction=prediction,
                 label_idx=int(np.argmax(prediction))
             )
-            if label_idx == 0 and not self._need_to_save_background_image():
-                continue
-
             coors = list(camera_config.roi.coordinates_roi[place_idx].values())
             ordered_coors = [coors[1], coors[0], coors[3], coors[2]]
             detection_places.append(
@@ -185,7 +183,7 @@ class VanillaDetector:
                     detection=ordered_coors,
                     label_idx=label_idx,
                     label=LABELS[label_idx],
-                    score=float(prediction[label_idx])
+                    score=float(prediction[label_idx]),
                 )
             )
         return detection_places
@@ -226,7 +224,10 @@ class MPVanillaDetector(Process):
     _config_controller: CameraConfigController
     _path_to_model: str
 
+    _logger: Logger
+
     def __init__(self,
+                 logger: Logger,
                  getter: AbsGetter,
                  putter: QueuePutter,
                  path_to_model: str,
@@ -238,6 +239,15 @@ class MPVanillaDetector(Process):
         self._vanilla_detector = vanilla_detector
         self._path_to_model = path_to_model
         self._config_controller = config_controller
+        self._logger = logger
+
+    def _filter_background_by_probs(self,
+                                    detections: List[DetectionPlace]) -> List[DetectionPlace]:
+        filtered = []
+        for det in detections:
+            if det.label_idx != 0 or random.random() <= 0.6:
+                filtered.append(det)
+        return filtered
 
     def run(self) -> None:
         from tensorflow import keras
@@ -251,7 +261,7 @@ class MPVanillaDetector(Process):
             image_value: Optional[Tuple[str, str, np.ndarray]] = self._getter.get()
             if image_value is None:
                 self._putter.put(value=None)
-                print("Vanilla::Can't get new value from getter, finish process!")
+                self._logger.info("Vanilla::Can't get new value from getter, finish process!")
                 break
             image_name, ip, image = image_value
             model_time = time.time()
@@ -259,7 +269,8 @@ class MPVanillaDetector(Process):
                 image=image,
                 camera_config=self._config_controller.get_config_by_ip(ip)
             )
-            print(f"Vanilla::Get {len(detections)} detections for {time.time() - model_time} seconds")
+            detections = self._filter_background_by_probs(detections)
+            self._logger.debug(f"Vanilla::Get {len(detections)} detections for {time.time() - model_time} seconds")
             if detections:
                 self._putter.put(value=(image_name, perspective_image, detections))
-                print(f"Vanilla::Put detections to queue")
+                self._logger.debug(f"Vanilla::Put detections to queue")

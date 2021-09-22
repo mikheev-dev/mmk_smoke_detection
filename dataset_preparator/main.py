@@ -1,10 +1,11 @@
 from multiprocessing import Queue
+from logging import Logger
 from pathlib import Path
 from typing import List, Dict, Any
-from tensorflow import keras
 
 import glob
 import os
+import logging
 import time
 
 from preparator import (DetectionPlace,
@@ -30,11 +31,25 @@ PATH_TO_VANILLA_MODEL = "vanilla_model/hatches.h5"
 PATH_TO_YOLO = "fire_model/yolov5"
 PATH_TO_BEST_WEIGHTS = "fire_model/best.pt"
 
-FIRE_THRESHOLD = 0.3
+FIRE_THRESHOLD = 0.5
 IOU_THRESHOLD = 0.25
 
 DATASET_RESULT_DIR = os.environ["DATASET_RESULT_DIR"]
 QUEUE_SIZE = int(os.environ["QUEUE_SIZE"])
+
+DEBUG_IMAGE = bool(os.environ.get("DEBUG_IMAGE", default=False))
+
+logging.basicConfig(
+    # filename=f'dataset_{time.time()}.log',
+    level=logging.DEBUG,
+    handlers=[
+        logging.FileHandler(f'dataset_{time.time()}.log'),
+        logging.StreamHandler()
+    ]
+)
+LOG = logging.getLogger(
+    name="dataset_logger"
+)
 
 
 def get_images_names(path_to_images: str) -> List[str]:
@@ -45,9 +60,10 @@ if __name__ == "__main__":
     q1 = Queue(maxsize=QUEUE_SIZE)
     q2 = Queue(maxsize=QUEUE_SIZE)
 
+
     images = get_images_names(PATH_TO_IMAGES)
-    # images = images[:3000]
-    print("Total count of images to handle:", len(images))
+    # images = images[:10]
+    LOG.info(f"Total count of images to handle:{len(images)}")
 
     config_controller = CameraConfigController(
         configs=[
@@ -57,17 +73,19 @@ if __name__ == "__main__":
     )
     vanilla_detector = VanillaDetector(
         emission_threshold=0.003,
-        background_prob_threshold=(1 / 18) * 0.1
+        logger=LOG
     )
     
     mp_vanilla_detector = MPVanillaDetector(
         getter=MultiCameraFileGetter(
-            pathes_to_images=images
+            pathes_to_images=images,
+            logger=LOG
         ),
         putter=QueuePutter(q=q1),
         vanilla_detector=vanilla_detector,
         path_to_model=PATH_TO_VANILLA_MODEL,
-        config_controller=config_controller
+        config_controller=config_controller,
+        logger=LOG
     )
 
     mp_fire_detector = MPFireDetectorFilter(
@@ -81,7 +99,10 @@ if __name__ == "__main__":
         path_to_weights=PATH_TO_BEST_WEIGHTS,
         fire_detector=FireDetector(),
         fire_threshold=FIRE_THRESHOLD,
-        iou_threshold=IOU_THRESHOLD
+        iou_threshold=IOU_THRESHOLD,
+        background_prob_threshold=(1 / 18) * 0.25,
+        logger=LOG,
+        need_debug_image=DEBUG_IMAGE
     )
     cropper = Cropper(
         dataset_main_dir=DATASET_RESULT_DIR,
@@ -90,7 +111,8 @@ if __name__ == "__main__":
         getter=QueueGetter(
             q=q2
         ),
-        cropper=cropper
+        cropper=cropper,
+        logger=LOG
     )
 
     start_time = time.time()
@@ -110,7 +132,7 @@ if __name__ == "__main__":
     mp_fire_detector.terminate()
     mp_cropper.terminate()
 
-    print("Total time of working", time.time() - start_time)
+    LOG.info(f"Total time of working {time.time() - start_time}")
 
     print_labels_stats(path_to_dataset=DATASET_RESULT_DIR,
                        extension="jpg")

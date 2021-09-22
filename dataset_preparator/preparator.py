@@ -174,6 +174,10 @@ class DatasetDirectoryController:
         self._path_for_labels = []
         self._dataset_main_dir = dataset_main_dir or self.MAIN_DATASET_DIR
 
+    @property
+    def dataset_dir(self) -> str:
+        return self._dataset_main_dir
+
     def get_directory_for_label_idx(self, label_idx: int) -> str:
         return self._path_for_labels[label_idx]
 
@@ -189,11 +193,20 @@ class DatasetDirectoryController:
 @attr.s
 class DetectionPlace:
     place: str = attr.ib()
-    detection: List = attr.ib()
     score: float = attr.ib()
     label: str = attr.ib()
     label_idx: int = attr.ib()
+    detection: List = attr.ib()
+    square_detection: List = attr.ib(default=list())
+    image_name: str = attr.ib(default="")
+    original_image_name: str = attr.ib(default="")
     line_thickness: int = attr.ib(default=4)
+
+    def to_pandas(self) -> Dict:
+        d = attr.asdict(self)
+        d["detection"] = ",".join(map(str, d["detection"]))
+        d["square_detection"] = ",".join(map(str, d["square_detection"]))
+        return d
 
 
 class ImageDetectionController:
