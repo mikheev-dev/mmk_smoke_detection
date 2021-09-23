@@ -1,0 +1,5 @@
+outs:
+- md5: 53b423eb44e1037e14f90cc7ae01fd22.dir
+  size: 441708811
+  nfiles: 177374
+  path: square_dataset
