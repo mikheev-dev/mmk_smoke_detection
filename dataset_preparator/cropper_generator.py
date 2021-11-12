@@ -27,44 +27,12 @@ SQUARE_DIM = 120
 
 
 class Cropper:
-    _vanilla_model_results: Dict[str, List[Dict[str, Any]]]
-    _replacing_patterns: Optional[List[Tuple[str, str]]]
     _dataset_dir_controller: DatasetDirectoryController
 
-    # _df: pd.DataFrame
-
     def __init__(self,
-                 dataset_main_dir: str,
-                 path_to_vanilla_model_results: Optional[str] = None,
-                 replacing_patterns: Optional[List[Tuple[str, str]]] = None):
-        if path_to_vanilla_model_results:
-            with open(path_to_vanilla_model_results) as p:
-                self._vanilla_model_results = json.load(p)
-        self._replacing_patterns = replacing_patterns
+                 dataset_main_dir: str):
         self._dataset_dir_controller = DatasetDirectoryController(dataset_main_dir=dataset_main_dir)
         self._dataset_dir_controller.prepare_directories()
-        self._df = pd.DataFrame(
-            {
-                "original_image_name": pd.Series(dtype='str'),
-                "place": pd.Series(dtype='str'),
-                "score": pd.Series(dtype='float'),
-                "label": pd.Series(dtype='str'),
-                "label_idx": pd.Series(dtype='int'),
-                "detection": pd.Series(dtype='str'),
-                "square_detection": pd.Series(dtype='str'),
-                "image_name": pd.Series(dtype='str'),
-                "line_thickness": pd.Series(dtype='int')
-            }
-        )
-
-    def _replace_patterns(self,
-                          image_path: str) -> str:
-        if not self._replacing_patterns:
-            return image_path
-        result_path = image_path
-        for pattern, result in self._replacing_patterns:
-            result_path = result_path.replace(pattern, result)
-        return result_path
 
     @staticmethod
     def _increase_box_params(cor1: int,
@@ -106,20 +74,21 @@ class Cropper:
 
         return inc_c_less, inc_c_grt
 
-    def _expand_box(self,
-                    max_height: int,
+    @staticmethod
+    def _expand_box(max_height: int,
                     max_width: int,
                     place: DetectionPlace) -> DetectionPlace:
-        new_min_y, new_max_y = self._increase_square_params(place.detection[0],
-                                                            place.detection[2],
-                                                            max_value=max_height)
-        new_min_x, new_max_x = self._increase_square_params(place.detection[1],
-                                                            place.detection[3],
-                                                            max_value=max_width)
+        new_min_y, new_max_y = Cropper._increase_square_params(place.detection[0],
+                                                               place.detection[2],
+                                                               max_value=max_height)
+        new_min_x, new_max_x = Cropper._increase_square_params(place.detection[1],
+                                                               place.detection[3],
+                                                               max_value=max_width)
         place.square_detection = [new_min_y, new_min_x, new_max_y, new_max_x]
         return place
 
-    def _crop_by_place_and_save(self,
+    @staticmethod
+    def _crop_by_place_and_save(dir_controller: DatasetDirectoryController,
                                 img: np.ndarray,
                                 place: DetectionPlace,
                                 img_name: Optional[str] = None):
@@ -132,7 +101,7 @@ class Cropper:
         img_name_without_extenstion = os.path.splitext(img_name)[0]
         croopped_img_name = f"{img_name_without_extenstion}_{uuid.uuid4()}.{EXTENSION}" if img_name else f"{uuid.uuid4()}.{EXTENSION}"
         path_to_save = os.path.join(
-            self._dataset_dir_controller.get_directory_for_label_idx(place.label_idx),
+            dir_controller.get_directory_for_label_idx(place.label_idx),
             croopped_img_name
         )
         place.image_name = path_to_save
@@ -149,17 +118,16 @@ class Cropper:
                      img_name: Optional[str] = None):
         for place in places:
             max_height, max_width = img.shape[0], img.shape[1]
-            place = self._expand_box(place=place,
-                                     max_height=max_height,
-                                     max_width=max_width)
-            place.original_image_name = self._get_orig_file_name(image_path=img_name)
-            self._crop_by_place_and_save(img=img,
-                                         img_name=img_name,
-                                         place=place)
-            # self._df = self._df.append(place.to_pandas(), ignore_index=True)
-
-    def save_pd(self):
-        self._df.to_csv(os.path.join(self._dataset_dir_controller.dataset_dir, "dataset.csv"))
+            place = Cropper._expand_box(place=place,
+                                        max_height=max_height,
+                                        max_width=max_width)
+            place.original_image_name = Cropper._get_orig_file_name(image_path=img_name)
+            Cropper._crop_by_place_and_save(
+                dir_controller=self._dataset_dir_controller,
+                img=img,
+                img_name=img_name,
+                place=place
+            )
 
 
 class MPCropperDatasetGenerator(Process):
