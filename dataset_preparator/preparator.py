@@ -5,11 +5,12 @@ import numpy as np
 import os
 import random
 import abc
+import glob
 
 from PIL import Image
 from multiprocessing import Queue
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Callable
 from classJson import JsonData
 
 PATH_TO_MODEL = "vanilla_model/hatches.h5"
@@ -18,7 +19,8 @@ EMISSION_LABEL = "emission"
 FIRE_LABEL = "fire"
 MACHINE_LABEL = "machine"
 
-LABELS = [BACKGROUND_LABEL, EMISSION_LABEL, FIRE_LABEL, MACHINE_LABEL]
+LABELS = (BACKGROUND_LABEL, EMISSION_LABEL, FIRE_LABEL, MACHINE_LABEL)
+BINARY_LABELS = (BACKGROUND_LABEL, EMISSION_LABEL)
 N, M = 75, 75  # размер входного изображения
 
 
@@ -168,32 +170,72 @@ class DatasetDirectoryController:
 
     _path_for_labels: List[str]
     _dataset_main_dir: str
+    _labels: List[str]
+    _label_mapper: Callable
+
+    @property
+    def labels(self) -> List[str]:
+        return self._labels
 
     def __init__(self,
-                 dataset_main_dir: Optional[str] = None):
+                 dataset_main_dir: Optional[str] = None,
+                 labels: List[str] = LABELS,
+                 label_mapper: Callable = lambda x: x):
+        print(labels)
         self._path_for_labels = []
         self._dataset_main_dir = dataset_main_dir or self.MAIN_DATASET_DIR
+        self._labels = labels
+        self._label_mapper = label_mapper
+
+    @property
+    def dataset_dir(self) -> str:
+        return self._dataset_main_dir
 
     def get_directory_for_label_idx(self, label_idx: int) -> str:
-        return self._path_for_labels[label_idx]
+        mapped_label_idx = self._label_mapper(label_idx)
+        return self._path_for_labels[mapped_label_idx]
 
     def prepare_directories(self):
         if not os.path.exists(self._dataset_main_dir):
-            os.mkdir(self._dataset_main_dir)
-        for label in LABELS:
+            os.makedirs(self._dataset_main_dir)
+        for label in self._labels:
             label_path = os.path.join(self._dataset_main_dir, label)
             if not os.path.exists(label_path):
                 os.mkdir(label_path)
             self._path_for_labels.append(label_path)
 
+    @property
+    def stats(self) -> Dict[str, int]:
+        return {
+            self._labels[label_idx]: len(
+                glob.glob(
+                    os.path.join(
+                        self.get_directory_for_label_idx(label_idx),
+                        '*'
+                    )
+                )
+            )
+            for label_idx in range(len(self._labels))
+        }
+
+
 @attr.s
 class DetectionPlace:
     place: str = attr.ib()
-    detection: List = attr.ib()
     score: float = attr.ib()
     label: str = attr.ib()
     label_idx: int = attr.ib()
+    detection: List = attr.ib()
+    square_detection: List = attr.ib(default=list())
+    image_name: str = attr.ib(default="")
+    original_image_name: str = attr.ib(default="")
     line_thickness: int = attr.ib(default=4)
+
+    def to_pandas(self) -> Dict:
+        d = attr.asdict(self)
+        d["detection"] = ",".join(map(str, d["detection"]))
+        d["square_detection"] = ",".join(map(str, d["square_detection"]))
+        return d
 
 
 class ImageDetectionController:
